@@ -1,0 +1,16 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: test-cert
+  namespace: default
+spec:
+  secretName: test-cert-tls  # Il nome del Secret TLS che verrà creato
+  issuerRef:
+    name: letsencrypt
+    kind: ClusterIssuer
+  commonName: chungo.dev
+  dnsNames:
+    - chungo.dev
+  usages:
+    - digital signature
+    - key encipherment
