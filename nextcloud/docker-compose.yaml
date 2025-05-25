@@ -1,0 +1,67 @@
+services:
+  nextcloud-aio-mastercontainer:
+    image: ghcr.io/nextcloud-releases/all-in-one:latest
+    init: true
+    restart: always
+    container_name: nextcloud-aio-mastercontainer
+    ports:
+      - "80:80" # Necessario per la validazione iniziale del dominio con Let's Encrypt (HTTP-01)
+      - "8080:8080" # Porta per l'interfaccia di gestione AIO
+      - "8443:8443" # Porta HTTPS principale per Nextcloud
+    volumes:
+      - nextcloud_aio_mastercontainer:/mnt/docker-aio-config
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /mnt/nextcloud:/mnt/nextcloud # Monta la directory dati di Nextcloud sull'host (se usi un volume Docker, commenta questa riga)
+    environment:
+      # --- Dominio e Rete ---
+      - NEXTCLOUD_DATADIR=/mnt/nextcloud # Percorso sull'host dove Nextcloud salverà i dati degli utenti.
+                                       # DECOMMENTA E MODIFICA se vuoi usare una directory specifica sull'host.
+                                       # Se non specificato, AIO creerà un volume Docker per i dati.
+                                       # Esempio: - NEXTCLOUD_DATADIR=/media/myclouddata
+      - APACHE_PORT=9000 # Se vuoi esporre Nextcloud AIO su una porta diversa dalla 80/443 (utile se hai un reverse proxy davanti)
+      - APACHE_IP_BINDING=192.168.15.30 # Se vuoi che Apache all'interno del container AIO ascolti solo su localhost (utile con reverse proxy esterno)
+      - SKIP_DOMAIN_VALIDATION=false # Imposta a 'true' SOLO se stai testando localmente o hai problemi con la validazione del dominio.
+                                     # Per produzione, lascialo a 'false' per ottenere certificati SSL validi.
+      - NEXTCLOUD_AIO_TRUSTED_PROXY_IPS=10.42.0.0/16, 10.43.0.0/16, 192.168.15.15, 192.168.15.11, 192.168.15.12, 192.168.15.13
+                                                      # Modifica con l'IP o il range corretto del tuo proxy.
+
+      # --- Backup (Opzionale ma Raccomandato) ---
+      # - NEXTCLOUD_BACKUP_DIR=/mnt/backup # Percorso sull'host dove verranno salvati i backup di Nextcloud AIO.
+                                         # DECOMMENTA E MODIFICA. Esempio: - NEXTCLOUD_BACKUP_DIR=/media/mybackupdrive/nextcloud_backups
+      # - NEXTCLOUD_ENABLE_BACKUP_JOB=true # Abilita i backup automatici (richiede NEXTCLOUD_BACKUP_DIR)
+      # - NEXTCLOUD_BACKUP_TIME=01:00 # Ora per eseguire il backup (formato HH:MM, UTC di default)
+      # - NEXTCLOUD_BACKUP_INTERVAL=1d # Intervallo tra i backup (es. 1d per giornaliero, 7d per settimanale)
+      # - NEXTCLOUD_BACKUP_MAX_AGE=30d # Per quanto tempo conservare i backup (es. 30d per 30 giorni)
+
+      # --- Aggiornamenti Automatici (Watchtower è gestito internamente da AIO per i container che crea) ---
+      # AIO gestisce gli aggiornamenti dei suoi container.
+      # Queste variabili sono per Watchtower se lo usi per aggiornare il mastercontainer stesso o altri container esterni ad AIO.
+      - WATCHTOWER_CLEANUP=true # Rimuove le vecchie immagini Docker dopo l'aggiornamento
+      - WATCHTOWER_POLL_INTERVAL=86400 # Controlla gli aggiornamenti ogni 24 ore (in secondi)
+
+      # --- Collabora Online (Ufficio Online) ---
+      # - COLLABORA_SECCOMP_ENABLED=false # Prova a impostarlo a 'false' se Collabora non si avvia correttamente (problemi di compatibilità del kernel)
+      # - COLLABORA_DOMAIN=office.tuodominio.com # Se vuoi che Collabora sia accessibile su un sottodominio separato.
+
+      # --- Talk (Videoconferenze e Chat) ---
+      # - TALK_STUN_SERVER=stun.nextcloud.com:443 # Server STUN pubblico di Nextcloud (solitamente funziona bene)
+      # - TALK_TURN_SERVER=turn.tuodominio.com:3478 # Il TUO server TURN (necessario se STUN non basta per NAT traversal)
+      # - TALK_TURN_SECRET=LAMIASECRETETURN # La secret per il tuo server TURN
+      # - TALK_TURN_PROTOCOLS=udp,tcp # Protocolli per il server TURN
+
+      # --- Varie Utili ---
+      - NEXTCLOUD_MEMORY_LIMIT=8000M # Limite di memoria per il container di Nextcloud (non il mastercontainer).
+                                  # Modificalo in base alla RAM disponibile. Esempio: 2G, 8G.
+      # - SKIP_WELCOME_SCREEN=true # Salta la schermata di benvenuto di AIO dopo l'installazione
+      # - NEXTCLOUD_AIO_SKIP_AUTO_UPDATE=false # Imposta a true per disabilitare gli aggiornamenti automatici dei container AIO (sconsigliato)
+      # - NEXTCLOUD_AIO_DISABLE_BACKUP_SECTION=false # Imposta a true per nascondere la sezione backup nell'interfaccia AIO
+      # - NEXTCLOUD_AIO_DATADIR=/mnt/ncdata # Se vuoi specificare la directory dati di Nextcloud all'interno del filesystem del container (utile se NEXTCLOUD_DATADIR è un volume Docker).
+
+volumes:
+  nextcloud_aio_mastercontainer:
+    name: nextcloud_aio_mastercontainer
+  # --- Volumi Dati e Backup (DECOMMENTA E CONFIGURA se usi le variabili d'ambiente corrispondenti) ---
+  # nextcloud_data: # Volume per i dati di Nextcloud se usi NEXTCLOUD_DATADIR con un volume Docker
+  #   name: nextcloud_aio_datadrive
+  # nextcloud_backup: # Volume per i backup di Nextcloud se usi NEXTCLOUD_BACKUP_DIR con un volume Docker
+  #   name: nextcloud_aio_backupdrive

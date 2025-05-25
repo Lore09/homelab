@@ -1,0 +1,20 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: nextcloud-headers
+  namespace: proxy
+spec:
+  headers:
+    customRequestHeaders:
+      X-Forwarded-Host: '{{ .Host }}'
+      X-Forwarded-Proto: https
+      X-Real-IP: '{{ .ClientIP }}'
+    customResponseHeaders:
+      Permissions-Policy: geolocation=(), microphone=(), camera=()
+      Referrer-Policy: strict-origin-when-cross-origin
+      X-Content-Type-Options: nosniff
+      X-Frame-Options: SAMEORIGIN
+    forceSTSHeader: true
+    stsIncludeSubdomains: true
+    stsPreload: true
+    stsSeconds: 31536000
