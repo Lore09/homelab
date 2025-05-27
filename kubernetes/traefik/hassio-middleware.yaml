@@ -1,0 +1,13 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: homeassistant-headers
+  namespace: proxy
+spec:
+  headers:
+    customRequestHeaders:
+      X-Forwarded-For: '{{ .ClientIP }}'
+      X-Forwarded-Host: '{{ .Host }}'
+      X-Forwarded-Port: '443'
+      X-Forwarded-Proto: https
+      X-Real-IP: '{{ .ClientIP }}'
